@@ -1,27 +1,65 @@
 package connector
 
 import (
-	"fmt"
-	_ "io"
-
-	jira "github.com/andygrunwald/go-jira"
+	"GoJira/pkg/structure"
+	"encoding/json"
+	"gopkg.in/yaml.v2"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
 )
 
-func Foobar() {
-	// jiraClient, _ := jira.NewClient(nil, "https://issues.apache.org/jira/")
-	// issue, _, _ := jiraClient.Issue.Get("MESOS-3325", nil)
+var config map[string]string
+var projects []structure.Project
+var issues []structure.Issue
 
-	// fmt.Printf("%s: %+v\n", issue.Key, issue.Fields.Summary)
-	// fmt.Printf("Type: %s\n", issue.Fields.Type.Name)
-	// fmt.Printf("Priority: %s\n", issue.Fields.Priority.Name)
+func DownloadProjects() {
+	f, _ := os.ReadFile("resources/config.yaml")
 
-	// MESOS-3325: Running mesos-slave@0.23 in a container causes slave to be lost after a restart
-	// Type: Bug
-	// Priority: Critical
+	_ = yaml.Unmarshal(f, &config)
 
-	jiraClient, _ := jira.NewClient(nil, "https://issues.apache.org/jira/")
-	//var projectList jira.ProjectList
-	projectList, _, _ := jiraClient.Project.GetList()
+	resp, err := http.Get(config["jiraURL"] + "/project")
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
 
-	fmt.Printf("%+v\n", projectList)
+	_ = json.Unmarshal(body, &projects)
+
+	DownloadIssues(projects[0].Name)
+	//for i := 0; i < len(projects); i++ {
+	//	DownloadIssues(projects[i].Name)
+	//}
+}
+
+func DownloadIssues(projectName string) {
+	resp, err := http.Get(config["jiraURL"] + "/search?jql=project=\"" + projectName +
+		"\"&expand=changelog&startAt=0&maxResults=" + config["issuesCountInRequest"])
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+
+	var issueresp = new(structure.IssuesResponse)
+	_ = json.Unmarshal(body, &issueresp)
+
+	issues = append(issues, issueresp.Issues...)
+
+	countInRequest, _ := strconv.Atoi(config["issuesCountInRequest"])
+	for i := 1; i <= issueresp.IssuesCount/countInRequest; i++ {
+		resp, err := http.Get(config["jiraURL"] + "/search?jql=project=\"" + projectName +
+			"\"&expand=changelog&startAt=" + strconv.Itoa(i*countInRequest) + "&maxResults=" +
+			config["issuesCountInRequest"])
+		if err != nil {
+			log.Fatal(err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+
+		var issueresp = new(structure.IssuesResponse)
+		_ = json.Unmarshal(body, &issueresp)
+
+		issues = append(issues, issueresp.Issues...)
+	}
 }
