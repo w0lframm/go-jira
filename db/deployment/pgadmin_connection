@@ -1,0 +1,10 @@
+Адрес подключения: localhost:5050
+Пароль при входе: pgadmin
+Добавляем новый сервер:
+  1. На вкладке General вводим любое имя
+  2. На вкладке Connection:
+     Host = postgres
+     Port = 5432
+     Maintenance database = testdb
+     Username = pguser
+     Password = pgpwd

@@ -1,0 +1,11 @@
+jiraURL: "https://issues.apache.org/jira/rest/api/2/"
+issuesCountInRequest: 50
+threadCount: 1
+minWaitTime: 100
+maxWaitTime: 5000
+
+postgresUser: pguser
+postgresPassword: pgpwd
+postgresHost: localhost
+postgresPort: 5432
+dbName: testdb

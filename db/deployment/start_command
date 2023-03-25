@@ -1,0 +1,4 @@
+docker-compose --env-file ./config/.env.dev up -d
+
+Перед каждым запуском желательно удалять папки pgdata и pgadmin, чтобы все создавалось заново (особенно
+если меняете скрипт init.sql)
