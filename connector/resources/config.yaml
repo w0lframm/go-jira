@@ -1,6 +1,6 @@
 jiraURL: "https://issues.apache.org/jira/rest/api/2/"
 issuesCountInRequest: 50
-threadCount: 1
+threadCount: 10
 minWaitTime: 100
 maxWaitTime: 5000
 
