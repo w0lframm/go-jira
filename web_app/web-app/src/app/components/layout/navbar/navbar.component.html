@@ -31,7 +31,7 @@
             >Home</a
           >
         </li>
-        <li class="nav-item dropdown">
+        <!-- <li class="nav-item dropdown">
           <a
             class="nav-link dropdown-toggle"
             href="#"
@@ -54,6 +54,15 @@
               <a class="dropdown-item nav-link" href="#">Compare</a>
             </li>
           </ul>
+        </li> -->
+        <li class="nav-item">
+          <a class="nav-link" [routerLink]="['/projects']">All projects</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [routerLink]="['/issues']">Added projects</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [routerLink]="['/compare']">Compare</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" [routerLink]="['/about']">About us</a>

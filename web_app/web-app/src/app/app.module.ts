@@ -8,6 +8,8 @@ import { CardComponent } from './components/layout/card/card.component';
 import { HomeComponent } from './components/layout/home/home.component';
 import { AboutComponent } from './components/layout/about/about.component';
 import { ProjectListComponent } from './components/feature/project-list/project-list.component';
+import { ProjectIssuesComponent } from './components/feature/project-issues/project-issues.component';
+import { ProjectCompareComponent } from './components/feature/project-compare/project-compare.component';
 
 @NgModule({
   declarations: [
@@ -17,6 +19,8 @@ import { ProjectListComponent } from './components/feature/project-list/project-
     HomeComponent,
     AboutComponent,
     ProjectListComponent,
+    ProjectIssuesComponent,
+    ProjectCompareComponent,
   ],
   imports: [BrowserModule, AppRoutingModule],
   providers: [],
