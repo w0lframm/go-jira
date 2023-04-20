@@ -13,3 +13,7 @@ type DbConfig struct {
 	PostgresPort     string `yaml:"postgresPort"`
 	DbName           string `yaml:"dbName"`
 }
+
+type ServerConfig struct {
+	Port string `yaml:"port"`
+}

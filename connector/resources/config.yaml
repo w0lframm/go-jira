@@ -1,3 +1,5 @@
+port: "8081"
+
 jiraURL: "https://issues.apache.org/jira/rest/api/2/"
 issuesCountInRequest: 50
 threadCount: 10

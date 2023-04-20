@@ -3,7 +3,6 @@ package connector
 import (
 	"GoJira/pkg/structure"
 	"encoding/json"
-	"fmt"
 	"gopkg.in/yaml.v2"
 	"io"
 	"log"
@@ -14,19 +13,10 @@ import (
 )
 
 var connectorConfig structure.ConnectorConfig
-var projects []structure.Project
-var issuesMap = make(map[structure.Project][]structure.Issue)
 var mutex sync.Mutex
 
-// DownloadProjects downloads projects from Jira
-// @Summary Downloads projects from Jira
-// @Description Downloads projects from Jira
-// @Success 200 {string} string "ok"
-// @Failure 400 {string} string "bad request"
-// @Router /projects [get]
 func DownloadProjects() {
 	f, _ := os.ReadFile("resources/config.yaml")
-
 	_ = yaml.Unmarshal(f, &connectorConfig)
 
 	resp, err := http.Get(connectorConfig.JiraURL + "/project")
@@ -35,24 +25,35 @@ func DownloadProjects() {
 	}
 	body, _ := io.ReadAll(resp.Body)
 
+	var projects []structure.Project
+
 	_ = json.Unmarshal(body, &projects)
 
-	for i := 0; i < 5; i++ {
-		DownloadIssues(projects[i])
-		fmt.Println(len(issuesMap[projects[i]]))
+	for i := 0; i < 50; i++ {
+		//var issues = DownloadIssues(projects[i])
+		var issues []structure.Issue
+		PushProjectToDb(projects[i], issues)
 	}
-
-	PushDataToDb()
 }
 
-// DownloadIssues downloads issues for a given project from Jira
-// @Summary Downloads issues for a given project from Jira
-// @Description Downloads issues for a given project from Jira
-// @Param projectName query string true "Project name"
-// @Success 200 {string} string "ok"
-// @Failure 400 {string} string "bad request"
-// @Router /issues [get]
-func DownloadIssues(project structure.Project) {
+func DownloadProject(projectKey string) {
+	f, _ := os.ReadFile("resources/config.yaml")
+	_ = yaml.Unmarshal(f, &connectorConfig)
+
+	resp, err := http.Get(connectorConfig.JiraURL + "/project/" + projectKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+
+	var project structure.Project
+	_ = json.Unmarshal(body, &project)
+
+	var issues = DownloadIssues(project)
+	PushProjectToDb(project, issues)
+}
+
+func DownloadIssues(project structure.Project) []structure.Issue {
 	resp, err := http.Get(connectorConfig.JiraURL + "/search?jql=project=\"" + project.Name +
 		"\"&expand=changelog&startAt=0&maxResults=" + strconv.Itoa(connectorConfig.IssuesCountInRequest))
 	if err != nil {
@@ -63,7 +64,7 @@ func DownloadIssues(project structure.Project) {
 	var issueresp = new(structure.IssuesResponse)
 	_ = json.Unmarshal(body, &issueresp)
 
-	issuesMap[project] = append(issuesMap[project], issueresp.Issues...)
+	var issues = issueresp.Issues
 
 	var requestsCount = issueresp.IssuesCount / connectorConfig.IssuesCountInRequest
 	for i := 0; i < requestsCount/connectorConfig.ThreadCount; i++ {
@@ -72,7 +73,10 @@ func DownloadIssues(project structure.Project) {
 		for j := 0; j < connectorConfig.ThreadCount; j++ {
 			var startAt = (i*connectorConfig.ThreadCount + j + 1) * connectorConfig.IssuesCountInRequest
 			go func() {
-				DownloadIssuesThread(startAt, project)
+				var result = DownloadIssuesThread(startAt, project)
+				mutex.Lock()
+				issues = append(issues, result...)
+				mutex.Unlock()
 				wg.Done()
 			}()
 		}
@@ -84,14 +88,18 @@ func DownloadIssues(project structure.Project) {
 		var startAt = (requestsCount - requestsCount%connectorConfig.ThreadCount + i) *
 			connectorConfig.IssuesCountInRequest
 		go func() {
-			DownloadIssuesThread(startAt, project)
+			var result = DownloadIssuesThread(startAt, project)
+			mutex.Lock()
+			issues = append(issues, result...)
+			mutex.Unlock()
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+	return issues
 }
 
-func DownloadIssuesThread(startAt int, project structure.Project) {
+func DownloadIssuesThread(startAt int, project structure.Project) []structure.Issue {
 	resp, err := http.Get(connectorConfig.JiraURL + "/search?jql=project=\"" + project.Name +
 		"\"&expand=changelog&startAt=" + strconv.Itoa(startAt) + "&maxResults=" +
 		strconv.Itoa(connectorConfig.IssuesCountInRequest))
@@ -103,14 +111,10 @@ func DownloadIssuesThread(startAt int, project structure.Project) {
 	var issueresp = new(structure.IssuesResponse)
 	_ = json.Unmarshal(body, &issueresp)
 
-	mutex.Lock()
-	issuesMap[project] = append(issuesMap[project], issueresp.Issues...)
-	mutex.Unlock()
+	return issueresp.Issues
 }
 
-func PushDataToDb() {
-	OpenDBConnection()
-	for i := 0; i < len(projects); i++ {
-		InsertIssuesIntoDB(issuesMap[projects[i]], InsertProjectIntoDB(projects[i]))
-	}
+func PushProjectToDb(project structure.Project, issues []structure.Issue) {
+	ClearProject(project)
+	InsertProjectIntoDB(project, issues)
 }
