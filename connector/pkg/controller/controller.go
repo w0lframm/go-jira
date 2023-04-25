@@ -17,7 +17,7 @@ import (
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "bad request"
 // @Router /updateAll [post]
-var DownloadAllProjects = func(w http.ResponseWriter, r *http.Request) {
+func DownloadAllProjects(http.ResponseWriter, *http.Request) {
 	connector.DownloadProjects()
 }
 
@@ -28,7 +28,7 @@ var DownloadAllProjects = func(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "bad request"
 // @Router /updateProject [post]
-var DownloadProject = func(w http.ResponseWriter, r *http.Request) {
+func DownloadProject(_ http.ResponseWriter, r *http.Request) {
 	connector.DownloadProject(r.FormValue("key"))
 }
 
@@ -40,7 +40,7 @@ var DownloadProject = func(w http.ResponseWriter, r *http.Request) {
 // @Param search query string true "Search for project name"
 // @Success 200 {object} structure.RestProjects
 // @Router /getProjects [get]
-var GetProjects = func(w http.ResponseWriter, r *http.Request) {
+func GetProjects(w http.ResponseWriter, r *http.Request) {
 	var limit, _ = strconv.Atoi(r.FormValue("limit"))
 	var page, _ = strconv.Atoi(r.FormValue("page"))
 	var search = r.FormValue("search")
