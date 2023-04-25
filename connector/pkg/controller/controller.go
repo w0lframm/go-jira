@@ -5,19 +5,41 @@ import (
 	"GoJira/pkg/converter"
 	"GoJira/pkg/structure"
 	"GoJira/pkg/utils"
+	_ "github.com/swaggo/swag"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
+// DownloadAllProjects downloads all projects from Jira
+// @Summary Downloads all projects from Jira
+// @Description Downloads all projects from Jira
+// @Success 200 {string} string "ok"
+// @Failure 400 {string} string "bad request"
+// @Router /updateAll [post]
 var DownloadAllProjects = func(w http.ResponseWriter, r *http.Request) {
 	connector.DownloadProjects()
 }
 
+// DownloadProject downloads project with given key from Jira
+// @Summary Downloads project with given key from Jira
+// @Description Downloads project with given key from Jira
+// @Param key query string true "Project's key"
+// @Success 200 {string} string "ok"
+// @Failure 400 {string} string "bad request"
+// @Router /updateProject [post]
 var DownloadProject = func(w http.ResponseWriter, r *http.Request) {
 	connector.DownloadProject(r.FormValue("key"))
 }
 
+// GetProjects retrieving all projects
+// @Summary Retrieving all projects
+// @Description Retrieving all projects
+// @Param limit query integer true "Projects count on one page"
+// @Param page query integer true "Number of page"
+// @Param search query string true "Search for project name"
+// @Success 200 {object} structure.RestProjects
+// @Router /getProjects [get]
 var GetProjects = func(w http.ResponseWriter, r *http.Request) {
 	var limit, _ = strconv.Atoi(r.FormValue("limit"))
 	var page, _ = strconv.Atoi(r.FormValue("page"))

@@ -29,9 +29,8 @@ func DownloadProjects() {
 
 	_ = json.Unmarshal(body, &projects)
 
-	for i := 0; i < 50; i++ {
-		//var issues = DownloadIssues(projects[i])
-		var issues []structure.Issue
+	for i := 0; i < 2; i++ {
+		var issues = DownloadIssues(projects[i])
 		PushProjectToDb(projects[i], issues)
 	}
 }

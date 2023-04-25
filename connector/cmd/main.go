@@ -5,11 +5,18 @@ import (
 	"GoJira/pkg/structure"
 	"fmt"
 	"github.com/gorilla/mux"
+	_ "github.com/swaggo/swag"
 	"gopkg.in/yaml.v2"
 	"net/http"
 	"os"
 )
 
+// @title JIRA_analizer
+// @version	1.0
+// @description	Разработка промышленного клиент-серверного приложения с применением принципов микросервисной архитектуры, языков программирования Golang, фрейморка Angular и TypeScript.
+// @BasePath /
+// @host localhost:8081
+// @license.name MIT License
 func main() {
 	router := mux.NewRouter()
 
