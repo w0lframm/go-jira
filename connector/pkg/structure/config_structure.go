@@ -4,6 +4,8 @@ type ConnectorConfig struct {
 	JiraURL              string `yaml:"jiraURL"`
 	IssuesCountInRequest int    `yaml:"issuesCountInRequest"`
 	ThreadCount          int    `yaml:"threadCount"`
+	MinWaitTime          int    `yaml:"minWaitTime"`
+	MaxWaitTime          int    `yaml:"maxWaitTime"`
 }
 
 type DbConfig struct {

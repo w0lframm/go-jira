@@ -5,12 +5,67 @@ import (
 	"GoJira/pkg/structure"
 	"github.com/go-pg/pg/v10"
 	"gopkg.in/yaml.v2"
-	"log"
 	"os"
 )
 
 var dbConfig structure.DbConfig
 var db *pg.DB
+
+func InsertProjectsIntoDB(issuesMap map[structure.Project][]structure.Issue) error {
+	openDBConnection()
+	err := db.RunInTransaction(db.Context(), func(tx *pg.Tx) error {
+		for key, value := range issuesMap {
+			tmpErr := insertProjectIntoDB(tx, key, value)
+			if tmpErr != nil {
+				return tmpErr
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func InsertProjectIntoDB(project structure.Project, issues []structure.Issue) error {
+	openDBConnection()
+	err := db.RunInTransaction(db.Context(), func(tx *pg.Tx) error {
+		tmpErr := clearProject(project, tx)
+		if tmpErr != nil {
+			return tmpErr
+		}
+		_, tmpErr = tx.Model(&project).Returning("id").Insert()
+		if tmpErr != nil {
+			return tmpErr
+		}
+		tmpErr = insertIssuesIntoDB(issues, project, tx)
+		if tmpErr != nil {
+			return tmpErr
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func insertProjectIntoDB(tx *pg.Tx, project structure.Project, issues []structure.Issue) error {
+	err := clearProject(project, tx)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Model(&project).Returning("id").Insert()
+	if err != nil {
+		return err
+	}
+	err = insertIssuesIntoDB(issues, project, tx)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func openDBConnection() {
 	if (structure.DbConfig{}) == dbConfig {
@@ -29,68 +84,60 @@ func openDBConnection() {
 	}
 }
 
-func InsertProjectIntoDB(project structure.Project, issues []structure.Issue) {
-	openDBConnection()
-	_, err := db.Model(&project).Returning("id").Insert()
-	if err != nil {
-		log.Fatal(err)
-	}
-	insertIssuesIntoDB(issues, project)
-}
-
-func insertIssuesIntoDB(issues []structure.Issue, project structure.Project) {
+func insertIssuesIntoDB(issues []structure.Issue, project structure.Project, tx *pg.Tx) error {
 	for i := 0; i < len(issues); i++ {
-		creator := insertAuthorIntoDB(issues[i].Fields.Creator)
-		assignee := insertAuthorIntoDB(issues[i].Fields.Assignee)
+		creator, err := insertAuthorIntoDB(issues[i].Fields.Creator, tx)
+		if err != nil {
+			return err
+		}
+		assignee, err := insertAuthorIntoDB(issues[i].Fields.Assignee, tx)
+		if err != nil {
+			return err
+		}
 		issue := converter.ConvertIssueToIssueDB(issues[i])
 		issue.ProjectId = project.Id
 		issue.CreatorId = creator.Id
 		issue.AssigneeId = assignee.Id
-		_, err := db.Model(&issue).Returning("id").Insert()
+		_, err = tx.Model(&issue).Returning("id").Insert()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		for j := 0; j < len(issues[i].ChangeLog.Histories); j++ {
 			statusChange := converter.ConvertHistoryToStatusChangeDB(issues[i].ChangeLog.Histories[j])
 			if (structure.StatusChangeDB{}) != statusChange {
 				statusChange.IssueId = issue.Id
-				statusChange.AuthorId = insertAuthorIntoDB(issues[i].ChangeLog.Histories[j].Author).Id
-				_, err := db.Model(&statusChange).Insert()
+				author, err := insertAuthorIntoDB(issues[i].ChangeLog.Histories[j].Author, tx)
 				if err != nil {
-					log.Fatal(err)
+					return err
+				}
+				statusChange.AuthorId = author.Id
+				_, err = tx.Model(&statusChange).Insert()
+				if err != nil {
+					return err
 				}
 			}
 		}
 	}
+	return nil
 }
 
-func insertAuthorIntoDB(author structure.Person) structure.Person {
+func insertAuthorIntoDB(author structure.Person, tx *pg.Tx) (structure.Person, error) {
 	var result structure.Person
-	err := db.Model(&result).Where("key='" + author.Key + "'").Select()
+	err := tx.Model(&result).Where("key='" + author.Key + "'").Select()
 	if err != nil {
-		_, err := db.Model(&result).Returning("id").Insert()
+		_, err := tx.Model(&author).Returning("id").Insert()
 		if err != nil {
-			log.Fatal(err)
+			return structure.Person{}, err
 		}
-		return result
+		return author, nil
 	}
-	return result
+	return result, nil
 }
 
-func GetProjects() []structure.Project {
-	openDBConnection()
-	var result []structure.Project
-	err := db.Model(&result).Select()
+func clearProject(project structure.Project, tx *pg.Tx) error {
+	_, err := tx.Model(&project).Where("key='" + project.Key + "'").Delete()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	return result
-}
-
-func ClearProject(project structure.Project) {
-	openDBConnection()
-	_, err := db.Model(&project).Where("key='" + project.Key + "'").Delete()
-	if err != nil {
-		log.Fatal(err)
-	}
+	return nil
 }

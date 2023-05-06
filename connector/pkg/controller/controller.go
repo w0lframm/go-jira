@@ -6,6 +6,7 @@ import (
 	"GoJira/pkg/structure"
 	"GoJira/pkg/utils"
 	_ "github.com/swaggo/swag"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,8 +18,12 @@ import (
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "bad request"
 // @Router /updateAll [post]
-func DownloadAllProjects(http.ResponseWriter, *http.Request) {
-	connector.DownloadProjects()
+func DownloadAllProjects(w http.ResponseWriter, _ *http.Request) {
+	err := connector.DownloadProjects()
+	if err != nil {
+		log.Println(err)
+		utils.RespondError(w)
+	}
 }
 
 // DownloadProject downloads project with given key from Jira
@@ -28,8 +33,12 @@ func DownloadAllProjects(http.ResponseWriter, *http.Request) {
 // @Success 200 {string} string "ok"
 // @Failure 400 {string} string "bad request"
 // @Router /updateProject [post]
-func DownloadProject(_ http.ResponseWriter, r *http.Request) {
-	connector.DownloadProject(r.FormValue("key"))
+func DownloadProject(w http.ResponseWriter, r *http.Request) {
+	err := connector.DownloadProject(r.FormValue("key"))
+	if err != nil {
+		log.Println(err)
+		utils.RespondError(w)
+	}
 }
 
 // GetProjects retrieving all projects
@@ -44,7 +53,12 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 	var limit, _ = strconv.Atoi(r.FormValue("limit"))
 	var page, _ = strconv.Atoi(r.FormValue("page"))
 	var search = r.FormValue("search")
-	var projects = connector.GetProjects()
+	var projects, err = connector.GetProjects()
+	if err != nil {
+		log.Println(err)
+		utils.RespondError(w)
+		return
+	}
 
 	if search != "" {
 		var temp []structure.Project
