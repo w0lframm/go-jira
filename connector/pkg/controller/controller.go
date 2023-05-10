@@ -5,12 +5,36 @@ import (
 	"GoJira/pkg/converter"
 	"GoJira/pkg/structure"
 	"GoJira/pkg/utils"
+	"github.com/sirupsen/logrus"
 	_ "github.com/swaggo/swag"
-	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
+
+var (
+	logsLogger    = logrus.New()
+	errLogsLogger = logrus.New()
+)
+
+func init() {
+	logsFile, err := os.OpenFile("logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		logsLogger.Out = logsFile
+	} else {
+		logsLogger.Info("Failed to open logs.log file")
+	}
+
+	errLogsFile, err := os.OpenFile("err_logs.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		errLogsLogger.Out = errLogsFile
+	} else {
+		errLogsLogger.Info("Failed to open err_logs.log file")
+	}
+
+	errLogsLogger.SetLevel(logrus.WarnLevel)
+}
 
 // DownloadAllProjects downloads all projects from Jira
 // @Summary Downloads all projects from Jira
@@ -21,7 +45,7 @@ import (
 func DownloadAllProjects(w http.ResponseWriter, _ *http.Request) {
 	err := connector.DownloadProjects()
 	if err != nil {
-		log.Println(err)
+		logsLogger.Error(err)
 		utils.RespondError(w)
 	}
 }
@@ -36,7 +60,7 @@ func DownloadAllProjects(w http.ResponseWriter, _ *http.Request) {
 func DownloadProject(w http.ResponseWriter, r *http.Request) {
 	err := connector.DownloadProject(r.FormValue("key"))
 	if err != nil {
-		log.Println(err)
+		logsLogger.Error(err)
 		utils.RespondError(w)
 	}
 }
@@ -55,7 +79,7 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 	var search = r.FormValue("search")
 	var projects, err = connector.GetProjects()
 	if err != nil {
-		log.Println(err)
+		logsLogger.Error(err)
 		utils.RespondError(w)
 		return
 	}
