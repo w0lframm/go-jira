@@ -21,7 +21,6 @@ jobs:
 
       - name: Build and test
         run: |
-          go build ./connector/cmd/main_test.go
-          go test ./connector/cmd/main_test.go
-          go test ./connector/pkg/controller/controller_test.go
+          go build ./...
+          go test ./...
           
